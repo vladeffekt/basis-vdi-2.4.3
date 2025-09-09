@@ -16,9 +16,45 @@ log_status() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >> "$LOG_FILE"
 }
 
+# Функция для отображения справки
+show_usage() {
+    echo "Использование: $0 [--broker <адрес_брокера>]"
+    echo "  --broker Адрес VDI брокера (обязательный параметр)"
+    echo "  --help   Показать эту справку"
+    echo ""
+    echo "Пример: $0 --broker sz-vpn.vdi.rt.gslb"
+    exit 1
+}
+
 # Очистка старого лога
 echo "========================================" > "$LOG_FILE"
 log_status "Запуск скрипта"
+
+# Парсинг аргументов командной строки
+BROKER_ADDRESS=""
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --broker)
+            BROKER_ADDRESS="$2"
+            shift 2
+            ;;
+        --help)
+            show_usage
+            ;;
+        *)
+            echo "Неизвестный параметр: $1"
+            show_usage
+            ;;
+    esac
+done
+
+# Проверка что брокер указан
+if [ -z "$BROKER_ADDRESS" ]; then
+    echo "Ошибка: Не указан адрес брокера"
+    show_usage
+fi
+
+log_status "Используется брокер: $BROKER_ADDRESS"
 
 # Проверка поднят ли tunsnx
 log_status "Проверка состояния интерфейса tunsnx"
@@ -93,15 +129,15 @@ done
 # Создаём директорию для конфига, если её нет
 mkdir -p "$CONFIG_DIR"
 
-# Создаём шаблонный app-config, если его нет
-if [ -f "$APP_CONFIG" ]; then
-    log_status "Конфиг-файл найден: $APP_CONFIG"
-else
-    log_status "Создаём шаблонный app-config"
-    cat > "$APP_CONFIG" << 'EOF'
+
+SHARE_DIR="/home/$USER/$SCRIPT_DIR/share_dir"
+mkdir -p "$CONFIG_DIR"
+# Создаём конфиг с переданным адресом брокера
+log_status "Создаём конфиг-файл с брокером: $BROKER_ADDRESS"
+cat > "$APP_CONFIG" << EOF
 {
   "AutoConnect": false,
-  "brokers": ["sz-vpn.vdi.rt.gslb"],
+  "brokers": ["$BROKER_ADDRESS"],
   "rdp_client_path": "/usr/bin/xfreerdp",
   "stream_width": 0,
   "stream_height": 0,
@@ -124,9 +160,8 @@ else
   ]
 }
 EOF
-fi
 
-log_status "Используется конфиг-файл: $APP_CONFIG"
+log_status "Конфиг-файл создан: $APP_CONFIG"
 
 # Определяем временную зону хоста 
 HOST_TIMEZONE=$(timedatectl show --property=Timezone --value 2>/dev/null || echo "Europe/Moscow")
