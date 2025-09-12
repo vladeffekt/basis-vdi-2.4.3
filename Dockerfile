@@ -1,6 +1,4 @@
-# Базовый образ ALT Linux P10
 FROM alt:p10
-
 WORKDIR /tmp/vdi
 
 # Копируем новые RPM-файлы в контейнер
@@ -9,7 +7,7 @@ COPY vms-vdi-env-python3-3.9.19-alt10basis1.x86_64.rpm ./
 
 # Устанавливаем все необходимые системные зависимости
 RUN apt-get update -y && \
-    apt-get install -y \
+    apt-get install -y --fix-missing \
         xorg-server \
         xorg-apps \
         xdotool \
@@ -43,11 +41,20 @@ RUN apt-get update -y && \
         openssl \
         openssl-gost-engine \
         systemd \
-	      xfreerdp \
-	      pulseaudio \
-	      pulseaudio-utils \
-	      freerdp-plugins-standard
+	    xfreerdp \
+	    pulseaudio \
+	    pulseaudio-utils \
+	    freerdp-plugins-standard \
+        libva \
+        libva-utils \
+        libva-driver-intel \
+        libva-driver-vdpau \
+        mesa-dri-drivers \
+        libEGL-mesa \
+        libqt5-eglfskmssupport \
+        libqt5-eglfsdeviceintegration 
 	
+# Устанавливаем пакеты в строгой последовательности
 RUN rpm -i vms-vdi-env-python3-3.9.19-alt10basis1.x86_64.rpm && \
     rpm -i vdi-client-2.4.3-r278.n496a10.common.x86_64.rpm
 
@@ -55,7 +62,7 @@ RUN rpm -i vms-vdi-env-python3-3.9.19-alt10basis1.x86_64.rpm && \
 RUN chmod +x /opt/vdi-client/bin/desktop-client && \
     chmod +x /opt/vdi-client/bin/desktop-agent-linux
 
-# Проверка установки: выводим список файлов и версию Python
+# Выводим список файлов и версию Python
 RUN ls -la /opt/vdi-client/bin/ && \
     /opt/vms-vdi-env/python/bin/python3 --version
 
